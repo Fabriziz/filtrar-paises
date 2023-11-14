@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informações sobre Países</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 50px;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        select, input {
+            padding: 10px;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        img {
+            max-width: 200px;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        p {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        #countryInfo {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        #favorites {
+            margin-top: 20px;
+        }
+
+        #favorites h2 {
+            color: #333;
+        }
+
+        #favorites ul {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        #favorites li {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Informações sobre Países</h1>
+    
+    <label for="searchInput">Pesquisar Países:</label>
+    <input type="text" id="searchInput" oninput="filterCountries()" placeholder="Digite o nome do país">
+
+    <label for="countrySelect">Selecione um país:</label>
+    <select id="countrySelect" onchange="getCountryInfo()">
+        <!-- O menu suspenso será preenchido dinamicamente pelo JavaScript -->
+    </select>
+
+    <div id="countryInfo">
+        <h2>Informações:</h2>
+        <p><strong>Nome do País:</strong> <span id="countryName"></span></p>
+        <p><strong>Sigla:</strong> <span id="countryCode"></span></p>
+        <p><strong>Capital:</strong> <span id="countryCapital"></span></p>
+        <p><strong>Bandeira:</strong></p>
+        <img id="countryFlag" alt="Bandeira do País">
+        <button onclick="toggleFavorite()">Favoritar</button>
+    </div>
+
+    <div id="favorites">
+        <h2>Países Favoritos:</h2>
+        <ul id="favoriteList"></ul>
+    </div>
+
+    <script>
+        function populateCountries() {
+            var select = document.getElementById("countrySelect");
+
+            var apiUrl = "https://restcountries.com/v2/all";
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(country => {
+                        var option = document.createElement("option");
+                        option.value = country.alpha2Code;
+                        option.textContent = country.name;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Erro ao obter a lista de países:', error));
+        }
+
+        function getCountryInfo() {
+            var select = document.getElementById("countrySelect");
+            var countryCode = select.value;
+
+            var apiUrl = `https://restcountries.com/v2/alpha/${countryCode}`;
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("countryName").innerText = data.name;
+                    document.getElementById("countryCode").innerText = data.alpha2Code;
+                    document.getElementById("countryCapital").innerText = data.capital;
+                    document.getElementById("countryFlag").src = data.flags.svg;
+
+                    // Atualiza o botão de favoritos com base no estado atual do país
+                    updateFavoriteButton();
+                })
+                .catch(error => console.error('Erro ao obter informações do país:', error));
+        }
+
+        function toggleFavorite() {
+            var select = document.getElementById("countrySelect");
+            var countryCode = select.value;
+
+            var favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+            
+            // Verifica se o país já está na lista de favoritos
+            var index = favorites.indexOf(countryCode);
+            if (index === -1) {
+                favorites.push(countryCode);
+            } else {
+                favorites.splice(index, 1);
+            }
+
+            localStorage.setItem("favorites", JSON.stringify(favorites));
+            updateFavoriteList();
+            updateFavoriteButton();
+        }
+
+        function updateFavoriteButton() {
+            var select = document.getElementById("countrySelect");
+            var countryCode = select.value;
+
+            var favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+
+            var button = document.querySelector("#countryInfo button");
+            if (favorites.includes(countryCode)) {
+                button.textContent = "Remover dos Favoritos";
+            } else {
+                button.textContent = "Favoritar";
+            }
+        }
+
+        function updateFavoriteList() {
+            var favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+            var list = document.getElementById("favoriteList");
+            list.innerHTML = "";
+
+            favorites.forEach(countryCode => {
+                var listItem = document.createElement("li");
+                listItem.textContent = countryCode;
+                list.appendChild(listItem);
+            });
+        }
+
+        function filterCountries() {
+            var input = document.getElementById("searchInput");
+            var filter = input.value.toUpperCase();
+            var select = document.getElementById("countrySelect");
+            var options = select.getElementsByTagName("option");
+
+            for (var i = 0; i < options.length; i++) {
+                var textValue = options[i].textContent || options[i].innerText;
+                if (textValue.toUpperCase().indexOf(filter) > -1) {
+                    options[i].style.display = "";
+                } else {
+                    options[i].style.display = "none";
+                }
+            }
+        }
+
+        window.onload = function () {
+            populateCountries();
+            getCountryInfo(); // Exibe as informações do primeiro país na lista por padrão
+            updateFavoriteList();
+            updateFavoriteButton();
+        };
+    </script>
+</body>
+</html>
